@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="FitBefore — check whether furniture fits a space before you buy it. Dimensions only, stored in your browser.">
+<meta name="theme-color" content="#0d9488">
+<title>FitBefore — Will it fit?</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' fill='none' stroke='%230d9488' stroke-width='2'/%3E%3Crect x='9' y='9' width='14' height='14' fill='%230d9488'/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <div>
+      <h1>FitBefore</h1>
+      <p class="tagline">Measure the space. Check the furniture. Buy with confidence.</p>
+    </div>
+    <div class="unit-switch" role="group" aria-label="Measurement unit">
+      <span class="unit-label" id="unitLabel">Units</span>
+      <button type="button" id="unitCm" class="unit-btn" aria-pressed="true">cm</button>
+      <button type="button" id="unitIn" class="unit-btn" aria-pressed="false">in</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs wrap" aria-label="Sections">
+  <button type="button" class="tab-btn" id="tabSpaces" data-tab="spaces" aria-current="page">Spaces</button>
+  <button type="button" class="tab-btn" id="tabFurniture" data-tab="furniture" aria-current="false">Furniture</button>
+  <button type="button" class="tab-btn" id="tabFit" data-tab="fit" aria-current="false">Fit Check</button>
+</nav>
+
+<main class="wrap" id="main">
+  <!-- ============ SPACES ============ -->
+  <section id="panel-spaces" class="panel" aria-labelledby="tabSpaces">
+    <div class="panel-head">
+      <div>
+        <h2>Your spaces</h2>
+        <p class="lede">Alcoves, shelf openings, corners, rooms. Width and depth are required; height is optional.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="addSpaceBtn">Add a space</button>
+    </div>
+    <div class="toolbar">
+      <label class="search-label" for="spaceSearch">Search spaces</label>
+      <input type="search" id="spaceSearch" placeholder="Search by name…" autocomplete="off">
+      <span class="count" id="spaceCount" aria-live="polite"></span>
+    </div>
+    <div id="spaceEmpty" class="empty">
+      <p><strong>No spaces yet.</strong></p>
+      <p>Add your first space — for example, the desk alcove or the shelf opening you are measuring for.</p>
+      <button type="button" class="btn btn-primary" data-open-space>Add your first space</button>
+    </div>
+    <ul id="spaceList" class="card-list"></ul>
+  </section>
+
+  <!-- ============ FURNITURE ============ -->
+  <section id="panel-furniture" class="panel" aria-labelledby="tabFurniture" hidden>
+    <div class="panel-head">
+      <div>
+        <h2>Furniture candidates</h2>
+        <p class="lede">Items you are considering. Width and depth are required; height, a product link, and notes are optional.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="addItemBtn">Add furniture</button>
+    </div>
+    <div class="toolbar">
+      <label class="search-label" for="itemSearch">Search furniture</label>
+      <input type="search" id="itemSearch" placeholder="Search by name…" autocomplete="off">
+      <span class="count" id="itemCount" aria-live="polite"></span>
+    </div>
+    <div id="itemEmpty" class="empty">
+      <p><strong>No furniture yet.</strong></p>
+      <p>Add the first item you are thinking of buying — a desk, a shelf, a sofa — with its dimensions from the product page.</p>
+      <button type="button" class="btn btn-primary" data-open-item>Add your first item</button>
+    </div>
+    <ul id="itemList" class="card-list"></ul>
+  </section>
+
+  <!-- ============ FIT CHECK ============ -->
+  <section id="panel-fit" class="panel" aria-labelledby="tabFit" hidden>
+    <div class="panel-head">
+      <div>
+        <h2>Fit check</h2>
+        <p class="lede">Pick a space and a piece of furniture. FitBefore compares width, depth, and height (when both are given) and draws a scaled top-down diagram.</p>
+      </div>
+      <button type="button" class="btn" id="printFitBtn" disabled>Print report</button>
+    </div>
+
+    <div id="fitEmpty" class="empty">
+      <p><strong>Nothing to compare yet.</strong></p>
+      <p id="fitEmptyText">Add at least one space and one piece of furniture first.</p>
+      <p class="empty-actions">
+        <button type="button" class="btn btn-primary" data-open-space>Add a space</button>
+        <button type="button" class="btn" data-open-item>Add furniture</button>
+      </p>
+    </div>
+
+    <div id="fitMain" hidden>
+      <div class="fit-controls">
+        <div class="field">
+          <label for="fitSpace">Space</label>
+          <select id="fitSpace"></select>
+        </div>
+        <div class="field">
+          <label for="fitItem">Furniture</label>
+          <select id="fitItem"></select>
+        </div>
+        <div class="field field-check">
+          <input type="checkbox" id="fitRotate">
+          <label for="fitRotate">Rotate furniture footprint (swap width and depth)</label>
+        </div>
+      </div>
+
+      <div class="fit-layout">
+        <div class="fit-diagram">
+          <svg id="fitSvg" viewBox="0 0 440 340" role="img" aria-label="Scaled top-down diagram of the furniture inside the space"></svg>
+          <p class="diagram-note">Top-down view, drawn to scale. Width runs left to right, depth top to bottom.</p>
+        </div>
+        <div class="fit-results" aria-live="polite" id="fitResults">
+          <h3 id="fitVerdict" class="verdict"></h3>
+          <p id="fitVerdictNote" class="verdict-note"></p>
+          <div class="table-scroll">
+          <table class="dim-table">
+            <caption>Dimension comparison</caption>
+            <thead>
+              <tr><th scope="col">Dimension</th><th scope="col">Space</th><th scope="col">Furniture</th><th scope="col">Clearance</th></tr>
+            </thead>
+            <tbody id="dimRows"></tbody>
+          </table>
+          </div>
+          <p id="fitHeightNote" class="muted"></p>
+          <p id="fitItemNote" class="item-note"></p>
+          <p id="fitItemLinkWrap" class="item-link" hidden><a id="fitItemLink" href="#" target="_blank" rel="noopener">Open product page</a></p>
+        </div>
+      </div>
+
+      <div id="printReport" class="print-only" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- ============ BACKUP ============ -->
+  <section class="backup panel" aria-labelledby="backupHeading">
+    <h2 id="backupHeading">Backup</h2>
+    <p class="lede">Everything is stored only in this browser. Export a backup file before clearing browser data, and import it to restore.</p>
+    <div class="backup-actions">
+      <button type="button" class="btn" id="exportBtn">Export backup (JSON)</button>
+      <button type="button" class="btn" id="importBtn">Import backup</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="muted">Import replaces everything saved here. A backup file is checked before anything changes: wrong app, wrong version, or any invalid entry is rejected whole and your saved data stays as it is.</p>
+  </section>
+
+  <section class="about panel" aria-labelledby="aboutHeading">
+    <h2 id="aboutHeading">How it works, and its limits</h2>
+    <ul class="about-list">
+      <li>All dimensions are stored in centimetres and converted for display. 1 inch = 2.54 cm exactly.</li>
+      <li>Clearance is the space dimension minus the furniture dimension. A clearance under 5 cm (about 2 in) is flagged as tight, so you can allow room for hands, skirting, or uneven walls.</li>
+      <li>Rotating swaps the furniture width and depth, so you can check the other orientation without retyping dimensions.</li>
+      <li><strong>Dimensions only.</strong> A fit here does not mean the item will pass through doors, hallways, or stairwells, or that it can be assembled inside the space. Check the delivery route separately.</li>
+      <li>Privacy: no account, no backend, no analytics. The app makes no network requests of its own, so your measurements never leave this device unless you export a backup file.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>FitBefore — a personal measurement notebook. Your data stays in this browser.</p>
+  </div>
+</footer>
+
+<dialog id="dialog" class="dialog">
+  <form method="dialog" id="dialogForm" novalidate>
+    <h2 id="dialogTitle"></h2>
+    <div id="dialogBody"></div>
+    <p class="form-error" id="dialogError" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="dialogCancel">Cancel</button>
+      <button type="submit" class="btn btn-primary" id="dialogConfirm">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast-root" id="toastRoot" aria-live="polite"></div>
+
+<script src="./app.js"></script>
+</body>
+</html>
